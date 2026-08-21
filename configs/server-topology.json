@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "host_role": "physical-cxl-testbed",
+  "dram_nodes": [0, 1],
+  "cxl_nodes": [2, 3],
+  "cpu_sets": {
+    "socket0_physical_cores": "0-15",
+    "socket1_physical_cores": "16-31"
+  },
+  "node_pairs": [
+    {"name": "socket0_near_cxl", "cpu_node": 0, "dram_node": 0, "cxl_node": 2, "distance": 14},
+    {"name": "socket1_near_cxl", "cpu_node": 1, "dram_node": 1, "cxl_node": 3, "distance": 14},
+    {"name": "socket0_cross_socket_cxl", "cpu_node": 0, "dram_node": 0, "cxl_node": 3, "distance": 24},
+    {"name": "socket1_cross_socket_cxl", "cpu_node": 1, "dram_node": 1, "cxl_node": 2, "distance": 24}
+  ],
+  "cxl_devices": [
+    {"memdev": "mem1", "pci_bdf": "0000:33:00.0", "dax_device": "dax0.0", "target_node": 2, "size_bytes": 68719476736},
+    {"memdev": "mem0", "pci_bdf": "0000:b4:00.0", "dax_device": "dax9.0", "target_node": 3, "size_bytes": 68719476736}
+  ]
+}
+

@@ -1,0 +1,5 @@
+benchmarks/numa_probe
+results/environment/*.json
+results/environment/*.txt
+!results/environment/.gitkeep
+
