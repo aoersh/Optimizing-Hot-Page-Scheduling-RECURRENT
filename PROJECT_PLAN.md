@@ -204,6 +204,9 @@ CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露，MLC �
 页面驻留校验全部通过。结果见 `docs/phase1-baseline.md`；该数据用于确认闭环和数量级，
 不替代论文 MLC 结果。
 
+迁移 pilot：已完成四组 DRAM/CXL 拓扑和 90:10、75:25 混合驻留，热页迁移
+逐页错误为 0，结果见 `docs/phase1-migration.md`。
+
 ### 阶段 2：热度采样与迁移执行器
 
 - 验证论文所述 `/proc/PID/numa_maps` 能得到哪些数据。

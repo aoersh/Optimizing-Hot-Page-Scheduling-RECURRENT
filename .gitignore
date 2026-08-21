@@ -1,8 +1,11 @@
 benchmarks/numa_probe
 benchmarks/memory_bench
+benchmarks/migration_bench
 results/baseline/*.jsonl
 results/baseline/*.csv
 !results/baseline/.gitkeep
+results/migration/*.jsonl
+!results/migration/.gitkeep
 results/environment/*.json
 results/environment/*.txt
 !results/environment/.gitkeep

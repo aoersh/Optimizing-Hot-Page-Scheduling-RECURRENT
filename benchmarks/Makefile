@@ -4,7 +4,7 @@ LDLIBS ?= -lnuma
 
 .PHONY: all clean
 
-all: numa_probe memory_bench
+all: numa_probe memory_bench migration_bench
 
 numa_probe: numa_probe.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDLIBS)
@@ -12,6 +12,8 @@ numa_probe: numa_probe.c
 memory_bench: memory_bench.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDLIBS)
 
-clean:
-	$(RM) numa_probe memory_bench
+migration_bench: migration_bench.c
+	$(CC) $(CFLAGS) -o $@ $< $(LDLIBS)
 
+clean:
+	$(RM) numa_probe memory_bench migration_bench
