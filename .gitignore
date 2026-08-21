@@ -1,6 +1,7 @@
 benchmarks/numa_probe
 benchmarks/memory_bench
 benchmarks/migration_bench
+benchmarks/static_controller_bench
 results/baseline/*.jsonl
 results/baseline/*.csv
 !results/baseline/.gitkeep
