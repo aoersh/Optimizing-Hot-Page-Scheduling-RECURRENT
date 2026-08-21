@@ -1,5 +1,8 @@
 benchmarks/numa_probe
+benchmarks/memory_bench
+results/baseline/*.jsonl
+results/baseline/*.csv
+!results/baseline/.gitkeep
 results/environment/*.json
 results/environment/*.txt
 !results/environment/.gitkeep
-
