@@ -5,7 +5,7 @@
 - 复现对象：*Optimizing Hot Page Scheduling in CXL Memory via Multilayer Perceptron-Based Prediction*
 - 论文出处：IEEE ISPA 2025，DOI `10.1109/ISPA67752.2025.00037`
 - 规划日期：2026-08-21
-- 当前阶段：阶段 0 已完成；阶段 1 pilot 基线已跑通；MLC、热度采样和性能监控权限仍待就绪
+- 当前阶段：阶段 0 已完成；阶段 1 pilot 基线已跑通；阶段 2 迁移执行器 pilot 已完成、热度采样待实现
 - 总体目标：构建一个可执行、可审计、可重复的双层内存热页迁移系统，复现论文的 MLP 参数预测闭环，并在可比实验中验证动态策略相对静态策略的延迟与带宽收益。
 
 ## 2. 复现范围与成功定义
@@ -204,9 +204,6 @@ CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露，MLC �
 页面驻留校验全部通过。结果见 `docs/phase1-baseline.md`；该数据用于确认闭环和数量级，
 不替代论文 MLC 结果。
 
-迁移 pilot：已完成四组 DRAM/CXL 拓扑和 90:10、75:25 混合驻留，热页迁移
-逐页错误为 0，结果见 `docs/phase1-migration.md`。
-
 ### 阶段 2：热度采样与迁移执行器
 
 - 验证论文所述 `/proc/PID/numa_maps` 能得到哪些数据。
@@ -215,6 +212,10 @@ CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露，MLC �
 - 实现静态阈值策略和限速/周期控制。
 
 验收：已知分配模式下页驻留识别正确；迁移前后节点变化可验证；部分失败不会破坏整轮实验；所有 errno 和耗时有日志。
+
+当前状态：迁移执行器 pilot 已完成，覆盖四组 DRAM/CXL 拓扑和 90:10、75:25
+混合驻留，逐页迁移错误为 0，结果见 `docs/phase2-migration.md`。逐页热度采样、
+静态阈值策略和在线周期控制尚未实现，因此阶段 2 尚未整体完成。
 
 ### 阶段 3：参数扫描与训练集生成
 
