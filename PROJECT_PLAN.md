@@ -222,6 +222,9 @@ CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露，MLC �
 下一步已进入参数敏感性 pilot：扫描阈值 `{10,20,30}` 与 `MAX_MIGRATIONS`
 `{128,256,512}`，结果写入 `docs/phase2-controller-sweep.md`。
 
+阶段 2 已确认的问题、废弃数据原因、测量口径和解决条件统一维护在
+`docs/phase2-known-issues.md`，正式结果必须满足其中的放行标准。
+
 ### 阶段 3：参数扫描与训练集生成
 
 - 先用论文明确的阈值 `{10,20,30}` 复刻阈值敏感性实验。
