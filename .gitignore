@@ -3,6 +3,8 @@ benchmarks/memory_bench
 benchmarks/migration_bench
 benchmarks/static_controller_bench
 benchmarks/online_controller_bench
+third_party/intel-mlc/
+third_party/*.tgz
 results/baseline/*.jsonl
 results/baseline/*.csv
 !results/baseline/.gitkeep

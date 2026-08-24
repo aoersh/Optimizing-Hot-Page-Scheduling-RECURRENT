@@ -92,7 +92,7 @@
 | NUMA distance | 0-2=14、1-3=14；0-3=24、1-2=24 | CXL 有明确近端/远端差异，不能合并为单一“远端”节点 |
 | CXL | `mem0` PCI `0000:b4:00.0`、`mem1` PCI `0000:33:00.0`；各 64 GiB | 两个真实 CXL Type-3 设备，可直接做 Node 2/3 对照 |
 | CXL 观测 | `cxl_pmu_mem0.0`、`cxl_pmu_mem1.0`，含读写请求事件 | 增加设备级流量指标，辅助验证页采样 |
-| 工具/限制 | `numactl`、`perf`、`cxl`、`ndctl`、`daxctl` 已安装；`mlc`、QEMU 未发现；`perf_event_paranoid=4` | 论文 MLC/QEMU 路径暂不可直接运行；需安装或采用替代微基准/授权 |
+| 工具/限制 | `numactl`、`perf`、`cxl`、`ndctl`、`daxctl` 已安装；Intel MLC v3.13 已本地安装；`perf_event_paranoid=4` | MLC 可用非 root `-e -r` 模式；PEBS/CXL PMU 仍受限 |
 | 内核策略 | `numa_balancing=1`，`zone_reclaim_mode=0`，demotion 未启用 | 主实验先保持现状并记录；另做关闭自动 NUMA balancing 对照 |
 
 ### 4.2 因地制宜的实验架构
@@ -180,7 +180,7 @@ MLP 连续输出必须经过显式后处理：反缩放（若输出也缩放）�
 
 - 将已确认的物理 CXL 四节点拓扑生成机器可读快照，并记录 CXL region、DAX target node 和 PMU 事件。
 - 验证 `move_pages(2)`、DAMON/perf、CXL PMU、CPU governor 和调整 NUMA balancing 所需权限。
-- 确认 MLC 与 PyTorch 是否可用；MLC 缺失时先用自研微基准验证工程闭环，正式论文对照等待 MLC。
+- 确认 MLC 与 PyTorch 是否可用；MLC v3.13 已安装，下一步冻结 W21/W23/W27 per-thread 配置。
 - 冻结“论文忠实层”和“增强层”的差异清单。
 - 交付：环境清单、依赖检查脚本、可复现实验配置模板。
 
@@ -188,7 +188,7 @@ MLP 连续输出必须经过显式后处理：反缩放（若输出也缩放）�
 
 当前状态：已实现并运行 `scripts/run_phase0.sh`。Node 0 -> 2 与 Node 1 -> 3
 各迁移 4096 个 4 KiB 页面，迁移前后驻留查询均 100% 符合预期且无错误；
-CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露，MLC 未安装。
+CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露；MLC v3.13 已安装并通过 smoke test。
 
 ### 阶段 1：物理 DRAM/CXL 基线
 

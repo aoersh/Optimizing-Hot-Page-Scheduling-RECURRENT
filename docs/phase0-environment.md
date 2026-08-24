@@ -36,7 +36,8 @@ numactl --physcpubind=0 ./benchmarks/numa_probe --source 0 --target 2 --mib 16
 
 ## 已知限制
 
-- 当前 `PATH` 中没有 Intel MLC。
+- 阶段 0 采集时 `PATH` 中没有 Intel MLC；随后已在仓库忽略目录安装 v3.13，详见
+  `docs/mlc-installation.md`。
 - `kernel.perf_event_paranoid=4` 阻止当前用户访问 CXL PMU 和 PEBS。
 - DAMON sysfs 未在 `/sys/kernel/mm/damon/admin` 暴露。
 - 已安装的 ndctl/cxl 用户态工具版本早于当前内核接口，无法完整解析 memdev 对象。因此，阶段 0
