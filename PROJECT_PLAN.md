@@ -219,6 +219,9 @@ CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露，MLC �
 `docs/phase2-static-controller.md`。在线周期控制 pilot 已实现并验证周期、限速和迁移后驻留，结果见
 `docs/phase2-online-controller.md`。透明的真实逐页热度采样仍未实现，因此阶段 2 尚未整体完成。
 
+下一步已进入参数敏感性 pilot：扫描阈值 `{10,20,30}` 与 `MAX_MIGRATIONS`
+`{128,256,512}`，结果写入 `docs/phase2-controller-sweep.md`。
+
 ### 阶段 3：参数扫描与训练集生成
 
 - 先用论文明确的阈值 `{10,20,30}` 复刻阈值敏感性实验。

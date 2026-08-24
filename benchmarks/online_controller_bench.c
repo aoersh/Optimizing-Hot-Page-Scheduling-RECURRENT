@@ -83,7 +83,11 @@ int main(int argc, char **argv)
         for (size_t offset = 0; offset < page_count; ++offset) {
             size_t relative = (offset + page_count - hot_start) % page_count;
             int is_hot = relative < hot_count;
-            uint32_t cpu_access = is_hot ? 45 : 10;
+            uint32_t cpu_access = 10;
+            if (is_hot) {
+                size_t band = (relative * 3) / hot_count;
+                cpu_access = (uint32_t)(25 + band * 10); /* delta: 15, 25, 35 */
+            }
             uint32_t cxl_access = 10;
             uint32_t delta = cpu_access - cxl_access;
             sum_cpu += cpu_access; sum_cxl += cxl_access;
