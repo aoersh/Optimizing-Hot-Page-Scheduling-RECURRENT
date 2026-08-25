@@ -221,6 +221,11 @@ CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露；MLC v
 MLC 工作集生成页级 JSONL，但当前单 CPU MLC 采样只能观测一个 CPU NUMA 节点，且
 64 MiB 工作集的 x20 pilot 页面覆盖率为 26.59%。因此阶段 2 尚未整体完成，正式特征仍需
 多节点工作负载和更高采样覆盖率。
+双节点受控热度 pilot 已进一步验证 CPU 0/16 对同一 8 MiB 工作集的相反 80:20 偏好：
+PEBS 覆盖 97.07% 页面，前后半区分别恢复出 3.03:1 和 3.65:1 的正确访问方向，结果见
+`docs/pebs-dual-node-validation.md`。
+采样周期扫描已完成：当前 pilot 默认 `SAMPLE_PERIOD=1000`，三次重复页面覆盖率均值
+95.70%，已判定页面准确率 72.93%；该数据用于热度排序，不作为无噪声逐页标签。
 
 下一步已进入参数敏感性 pilot：扫描阈值 `{10,20,30}` 与 `MAX_MIGRATIONS`
 `{128,256,512}`，结果写入 `docs/phase2-controller-sweep.md`。

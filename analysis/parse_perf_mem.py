@@ -62,6 +62,7 @@ def main() -> int:
     parser.add_argument("data")
     parser.add_argument("--pid", type=int, required=True)
     parser.add_argument("--maps")
+    parser.add_argument("--range", nargs=2, type=lambda value: int(value, 0), metavar=("START", "END"))
     parser.add_argument("--jsonl", required=True)
     args = parser.parse_args()
     nodes_by_cpu = cpu_nodes()
@@ -75,6 +76,10 @@ def main() -> int:
             match = re.match(r"^([0-9a-f]+)-([0-9a-f]+)", line)
             if match:
                 allowed.append((int(match.group(1), 16), int(match.group(2), 16)))
+    elif args.range:
+        if args.range[0] >= args.range[1]:
+            parser.error("range START must be smaller than END")
+        allowed = [tuple(args.range)]
     else:
         allowed = [largest_anonymous_mapping(args.data, args.pid)]
 

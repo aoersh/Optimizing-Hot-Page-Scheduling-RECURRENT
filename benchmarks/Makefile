@@ -4,7 +4,7 @@ LDLIBS ?= -lnuma
 
 .PHONY: all clean
 
-all: numa_probe memory_bench migration_bench static_controller_bench online_controller_bench
+all: numa_probe memory_bench migration_bench static_controller_bench online_controller_bench shared_heat_bench
 
 numa_probe: numa_probe.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDLIBS)
@@ -21,5 +21,8 @@ static_controller_bench: static_controller_bench.c
 online_controller_bench: online_controller_bench.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDLIBS)
 
+shared_heat_bench: shared_heat_bench.c
+	$(CC) $(CFLAGS) -pthread -o $@ $<
+
 clean:
-	$(RM) numa_probe memory_bench migration_bench static_controller_bench online_controller_bench
+	$(RM) numa_probe memory_bench migration_bench static_controller_bench online_controller_bench shared_heat_bench
