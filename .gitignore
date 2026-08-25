@@ -5,6 +5,8 @@ benchmarks/static_controller_bench
 benchmarks/online_controller_bench
 third_party/intel-mlc/
 third_party/*.tgz
+__pycache__/
+*.py[cod]
 results/baseline/*.jsonl
 results/baseline/*.csv
 !results/baseline/.gitkeep

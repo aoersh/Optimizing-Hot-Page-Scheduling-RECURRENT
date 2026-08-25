@@ -217,7 +217,10 @@ CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露；MLC v
 混合驻留，逐页迁移错误为 0，结果见 `docs/phase2-migration.md`。逐页热度采样、
 静态阈值策略已用软件访问计数器跑通阈值 10/20/30，结果见
 `docs/phase2-static-controller.md`。在线周期控制 pilot 已实现并验证周期、限速和迁移后驻留，结果见
-`docs/phase2-online-controller.md`。透明的真实逐页热度采样仍未实现，因此阶段 2 尚未整体完成。
+`docs/phase2-online-controller.md`。PEBS 真实逐页热度采样与六维特征汇总已实现，能够从
+MLC 工作集生成页级 JSONL，但当前单 CPU MLC 采样只能观测一个 CPU NUMA 节点，且
+64 MiB 工作集的 x20 pilot 页面覆盖率为 26.59%。因此阶段 2 尚未整体完成，正式特征仍需
+多节点工作负载和更高采样覆盖率。
 
 下一步已进入参数敏感性 pilot：扫描阈值 `{10,20,30}` 与 `MAX_MIGRATIONS`
 `{128,256,512}`，结果写入 `docs/phase2-controller-sweep.md`。
