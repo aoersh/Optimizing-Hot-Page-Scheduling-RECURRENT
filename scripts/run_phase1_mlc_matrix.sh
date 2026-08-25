@@ -10,7 +10,7 @@ repeats=${REPEATS:-5}
 buffer_kib=${BUFFER_KIB:-65536}
 time_seconds=${TIME_SECONDS:-1}
 summary="$output_dir/summary.jsonl"
-: >"$summary"
+touch "$summary"
 
 scenarios=${SCENARIOS:-"socket0:0:1-15:0:2 socket1:16:17-31:1:3"}
 for scenario_spec in $scenarios; do
@@ -26,6 +26,11 @@ for scenario_spec in $scenarios; do
                 stem="${scenario}-${workload}-${ratio//:/_}-r${repeat}"
                 raw="$output_dir/raw/$stem.txt"
                 parsed="$output_dir/parsed/$stem.jsonl"
+                if [[ -s "$parsed" ]]; then
+                    printf 'skip existing %s\n' "$stem" >&2
+                    head -n 1 "$parsed" >> "$summary"
+                    continue
+                fi
                 numactl --physcpubind="$cpu_list" "$mlc" --loaded_latency -e -r \
                     -c"$latency_cpu" -j"$dram_node" -o"$config" -t"$time_seconds" >"$raw" 2>&1
                 python3 "$root/analysis/parse_mlc_loaded_latency.py" "$raw" --output "$parsed" \
