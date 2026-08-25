@@ -1,5 +1,7 @@
 #define _GNU_SOURCE
 #include <pthread.h>
+#include <numa.h>
+#include <numaif.h>
 #include <sched.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -48,15 +50,23 @@ int main(int argc, char **argv)
 {
     int mib = argc > 1 ? atoi(argv[1]) : 64;
     double seconds = argc > 2 ? atof(argv[2]) : 5.0;
+    int memory_node = argc > 3 ? atoi(argv[3]) : 2;
     size_t pages = (size_t)mib * 256;
     volatile uint64_t *mapping = mmap(NULL, pages * 4096, PROT_READ | PROT_WRITE,
                                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (mapping == MAP_FAILED || pages < 2) return 1;
     madvise((void *)mapping, pages * 4096, MADV_NOHUGEPAGE);
+    unsigned long mask = 1UL << memory_node;
+    if (numa_available() < 0 || memory_node < 0 || memory_node > numa_max_node() ||
+        mbind((void *)mapping, pages * 4096, MPOL_BIND, &mask, sizeof(mask) * 8,
+              MPOL_MF_STRICT | MPOL_MF_MOVE) != 0) {
+        perror("mbind workload");
+        return 1;
+    }
     memset((void *)mapping, 1, pages * 4096);
     printf("{\"benchmark\":\"shared_heat_bench\",\"pid\":%d,\"pages\":%zu,"
-           "\"start\":\"%p\",\"end\":\"%p\"}\n",
-           getpid(), pages, (void *)mapping, (void *)(mapping + pages * 512));
+           "\"start\":\"%p\",\"end\":\"%p\",\"memory_node\":%d}\n",
+           getpid(), pages, (void *)mapping, (void *)(mapping + pages * 512), memory_node);
     fflush(stdout);
     pthread_t threads[2];
     struct worker workers[2] = {

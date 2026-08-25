@@ -5,7 +5,7 @@
 - 复现对象：*Optimizing Hot Page Scheduling in CXL Memory via Multilayer Perceptron-Based Prediction*
 - 论文出处：IEEE ISPA 2025，DOI `10.1109/ISPA67752.2025.00037`
 - 规划日期：2026-08-21
-- 当前阶段：阶段 0 已完成；阶段 1 pilot 基线已跑通；阶段 2 迁移执行器 pilot 已完成、热度采样待实现
+- 当前阶段：阶段 0 已完成；阶段 1 pilot 基线已跑通；阶段 2 真实 PEBS 热度驱动迁移闭环已完成；下一步进入阶段 3 参数扫描与训练集生成
 - 总体目标：构建一个可执行、可审计、可重复的双层内存热页迁移系统，复现论文的 MLP 参数预测闭环，并在可比实验中验证动态策略相对静态策略的延迟与带宽收益。
 
 ## 2. 复现范围与成功定义
@@ -92,7 +92,7 @@
 | NUMA distance | 0-2=14、1-3=14；0-3=24、1-2=24 | CXL 有明确近端/远端差异，不能合并为单一“远端”节点 |
 | CXL | `mem0` PCI `0000:b4:00.0`、`mem1` PCI `0000:33:00.0`；各 64 GiB | 两个真实 CXL Type-3 设备，可直接做 Node 2/3 对照 |
 | CXL 观测 | `cxl_pmu_mem0.0`、`cxl_pmu_mem1.0`，含读写请求事件 | 增加设备级流量指标，辅助验证页采样 |
-| 工具/限制 | `numactl`、`perf`、`cxl`、`ndctl`、`daxctl` 已安装；Intel MLC v3.13 已本地安装；`perf_event_paranoid=4` | MLC 可用非 root `-e -r` 模式；PEBS/CXL PMU 仍受限 |
+| 工具/限制 | `numactl`、`perf`、`cxl`、`ndctl`、`daxctl` 已安装；Intel MLC v3.13 已本地安装；当前 `perf_event_paranoid=0` | PEBS load 采样、CXL PMU 和 MLC 已验证；DAMON sysfs 仍未暴露 |
 | 内核策略 | `numa_balancing=1`，`zone_reclaim_mode=0`，demotion 未启用 | 主实验先保持现状并记录；另做关闭自动 NUMA balancing 对照 |
 
 ### 4.2 因地制宜的实验架构
@@ -188,7 +188,7 @@ MLP 连续输出必须经过显式后处理：反缩放（若输出也缩放）�
 
 当前状态：已实现并运行 `scripts/run_phase0.sh`。Node 0 -> 2 与 Node 1 -> 3
 各迁移 4096 个 4 KiB 页面，迁移前后驻留查询均 100% 符合预期且无错误；
-CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露；MLC v3.13 已安装并通过 smoke test。
+CXL PMU、PEBS 和 MLC v3.13 已安装并通过 smoke test；实验期间将 `perf_event_paranoid` 临时调整为 0，DAMON sysfs 仍未暴露。
 
 ### 阶段 1：物理 DRAM/CXL 基线
 
@@ -219,13 +219,17 @@ CXL PMU 因 `perf_event_paranoid=4` 不可访问，DAMON sysfs 未暴露；MLC v
 `docs/phase2-static-controller.md`。在线周期控制 pilot 已实现并验证周期、限速和迁移后驻留，结果见
 `docs/phase2-online-controller.md`。PEBS 真实逐页热度采样与六维特征汇总已实现，能够从
 MLC 工作集生成页级 JSONL，但当前单 CPU MLC 采样只能观测一个 CPU NUMA 节点，且
-64 MiB 工作集的 x20 pilot 页面覆盖率为 26.59%。因此阶段 2 尚未整体完成，正式特征仍需
+64 MiB 工作集的 x20 pilot 页面覆盖率为 26.59%。正式特征仍需
 多节点工作负载和更高采样覆盖率。
 双节点受控热度 pilot 已进一步验证 CPU 0/16 对同一 8 MiB 工作集的相反 80:20 偏好：
 PEBS 覆盖 97.07% 页面，前后半区分别恢复出 3.03:1 和 3.65:1 的正确访问方向，结果见
-`docs/pebs-dual-node-validation.md`。
+`docs/phase2-pebs-dual-node-validation.md`；采集与特征格式见
+`docs/phase2-pebs-page-heat.md`。
 采样周期扫描已完成：当前 pilot 默认 `SAMPLE_PERIOD=1000`，三次重复页面覆盖率均值
 95.70%，已判定页面准确率 72.93%；该数据用于热度排序，不作为无噪声逐页标签。
+真实 PEBS 热度驱动跨进程迁移闭环已完成：4 MiB CXL Node 2 工作集采样 7265 个有效样本，
+Node 0/1 各迁移 64 页，迁移后逐页复核错误为 0，结果见
+`docs/phase2-real-heat-migration.md`。阶段 2 工程验收完成。
 
 下一步已进入参数敏感性 pilot：扫描阈值 `{10,20,30}` 与 `MAX_MIGRATIONS`
 `{128,256,512}`，结果写入 `docs/phase2-controller-sweep.md`。
