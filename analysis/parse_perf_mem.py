@@ -38,6 +38,14 @@ def cpu_nodes() -> dict[int, int]:
 
 
 def largest_anonymous_mapping(data: str, pid: int):
+    candidates = anonymous_mappings(data, pid)
+    if not candidates:
+        raise RuntimeError(f"no anonymous mmap records found for PID {pid}")
+    _, start, end = max(candidates)
+    return start, end
+
+
+def anonymous_mappings(data: str, pid: int):
     result = subprocess.run(
         ["perf", "script", "-i", data, "--show-mmap-events"],
         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True,
@@ -51,10 +59,7 @@ def largest_anonymous_mapping(data: str, pid: int):
         size = int(match.group("size"), 16)
         if match.group("name") == "//anon" and start < 0x800000000000:
             candidates.append((size, start, start + size))
-    if not candidates:
-        raise RuntimeError(f"no anonymous mmap records found for PID {pid}")
-    _, start, end = max(candidates)
-    return start, end
+    return candidates
 
 
 def main() -> int:
@@ -63,6 +68,7 @@ def main() -> int:
     parser.add_argument("--pid", type=int, required=True)
     parser.add_argument("--maps")
     parser.add_argument("--range", nargs=2, type=lambda value: int(value, 0), metavar=("START", "END"))
+    parser.add_argument("--all-anonymous-min-kib", type=int)
     parser.add_argument("--jsonl", required=True)
     args = parser.parse_args()
     nodes_by_cpu = cpu_nodes()
@@ -80,6 +86,12 @@ def main() -> int:
         if args.range[0] >= args.range[1]:
             parser.error("range START must be smaller than END")
         allowed = [tuple(args.range)]
+    elif args.all_anonymous_min_kib is not None:
+        minimum = args.all_anonymous_min_kib * 1024
+        allowed = [(start, end) for size, start, end in anonymous_mappings(args.data, args.pid)
+                   if size >= minimum]
+        if not allowed:
+            parser.error("no anonymous mappings meet the minimum size")
     else:
         allowed = [largest_anonymous_mapping(args.data, args.pid)]
 
@@ -118,7 +130,7 @@ def main() -> int:
             }
             output.write(json.dumps(row, sort_keys=True) + "\n")
     print(json.dumps({"pid": args.pid, "samples": total, "pages": len(samples),
-                      "mapping": [f"0x{allowed[0][0]:x}", f"0x{allowed[0][1]:x}"],
+                      "mappings": [[f"0x{start:x}", f"0x{end:x}"] for start, end in allowed],
                       "output": args.jsonl}, sort_keys=True))
     return 0
 

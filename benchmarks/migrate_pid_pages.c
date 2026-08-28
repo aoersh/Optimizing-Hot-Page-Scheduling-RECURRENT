@@ -15,12 +15,14 @@ static double now_seconds(void)
 
 int main(int argc, char **argv)
 {
-    if (argc != 4) {
-        fprintf(stderr, "usage: %s PID TARGET_NODE ADDRESSES\n", argv[0]);
+    if (argc < 4 || argc > 6) {
+        fprintf(stderr, "usage: %s PID TARGET_NODE ADDRESSES [SOURCE_NODE] [MAX_PAGES]\n", argv[0]);
         return 2;
     }
     pid_t pid = (pid_t)strtol(argv[1], NULL, 10);
     int target = atoi(argv[2]);
+    int source = argc >= 5 ? atoi(argv[4]) : -1;
+    size_t limit = argc >= 6 ? (size_t)strtoull(argv[5], NULL, 10) : (size_t)-1;
     FILE *input = fopen(argv[3], "r");
     if (pid <= 0 || target < 0 || !input) return 2;
     size_t capacity = 256, count = 0;
@@ -46,11 +48,27 @@ int main(int argc, char **argv)
                "\"verified\":0,\"migration_seconds\":0.0,\"errno\":0}\n", pid, target);
         return 0;
     }
+    size_t input_count = count;
     int query_rc = move_pages(pid, count, pages, NULL, nodes, 0);
     int before_nodes[4] = {0, 0, 0, 0};
     for (size_t i = 0; i < count; ++i) {
         if (nodes[i] >= 0 && nodes[i] < 4) ++before_nodes[nodes[i]];
-        targets[i] = target;
+    }
+    size_t eligible = 0;
+    for (size_t i = 0; i < count && eligible < limit; ++i) {
+        if (source < 0 || nodes[i] == source) pages[eligible++] = pages[i];
+    }
+    count = eligible;
+    for (size_t i = 0; i < count; ++i) targets[i] = target;
+    if (count == 0) {
+        printf("{\"pid\":%d,\"target\":%d,\"input_pages\":%zu,\"source_filter\":%d,"
+               "\"requested\":0,\"before_nodes\":[%d,%d,%d,%d],\"query_rc\":%d,"
+               "\"migrate_rc\":0,\"migration_errors\":0,\"verify_rc\":0,"
+               "\"verified\":0,\"migration_seconds\":0.0,\"errno\":0}\n",
+               pid, target, input_count, source, before_nodes[0], before_nodes[1],
+               before_nodes[2], before_nodes[3], query_rc);
+        free(targets); free(nodes); free(pages);
+        return query_rc != 0;
     }
     double start = now_seconds();
     int migrate_rc = move_pages(pid, count, pages, targets, nodes, MPOL_MF_MOVE);
@@ -60,11 +78,11 @@ int main(int argc, char **argv)
     int verify_rc = move_pages(pid, count, pages, NULL, nodes, 0);
     int verified = 0;
     for (size_t i = 0; i < count; ++i) if (nodes[i] == target) ++verified;
-    printf("{\"pid\":%d,\"target\":%d,\"requested\":%zu,"
+    printf("{\"pid\":%d,\"target\":%d,\"input_pages\":%zu,\"source_filter\":%d,\"requested\":%zu,"
            "\"before_nodes\":[%d,%d,%d,%d],"
            "\"query_rc\":%d,\"migrate_rc\":%d,\"migration_errors\":%d,"
            "\"verify_rc\":%d,\"verified\":%d,\"migration_seconds\":%.9f,\"errno\":%d}\n",
-           pid, target, count, before_nodes[0], before_nodes[1], before_nodes[2], before_nodes[3],
+           pid, target, input_count, source, count, before_nodes[0], before_nodes[1], before_nodes[2], before_nodes[3],
            query_rc, migrate_rc, errors, verify_rc, verified, migration_seconds, errno);
     free(targets); free(nodes); free(pages);
     return query_rc || migrate_rc || verify_rc || errors || verified != (int)count;

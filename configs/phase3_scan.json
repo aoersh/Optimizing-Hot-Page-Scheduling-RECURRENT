@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "topology": {"source": 2, "targets": [0, 1]},
+  "workload": "shared_heat_bench",
+  "sample_period": 1000,
+  "min_delta_values": [1, 2],
+  "max_migrations_values": [64, 256, 512],
+  "migration_interval_ms_values": [0, 20],
+  "objective": {
+    "primary": "latency_ns",
+    "latency_tolerance_ns": 1.0,
+    "tie_break": "max_bandwidth_mb_s"
+  },
+  "units": {"latency": "ns", "bandwidth": "MB/s", "migration_interval": "ms", "page": "4KiB"}
+}

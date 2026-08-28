@@ -18,6 +18,8 @@ struct worker {
     int prefer_first;
     double seconds;
     uint64_t result;
+    uint64_t accesses;
+    double elapsed;
 };
 
 static void *run(void *arg)
@@ -42,7 +44,10 @@ static void *run(void *arg)
         clock_gettime(CLOCK_MONOTONIC_RAW, &now);
         elapsed = (double)now.tv_sec + (double)now.tv_nsec / 1e9 - start;
     } while (elapsed < w->seconds);
-    printf("{\"cpu\":%d,\"accesses\":%llu}\n", w->cpu, (unsigned long long)count);
+    w->accesses = count;
+    w->elapsed = elapsed;
+    printf("{\"cpu\":%d,\"accesses\":%llu,\"elapsed_seconds\":%.9f}\n",
+           w->cpu, (unsigned long long)count, elapsed);
     return NULL;
 }
 
@@ -70,11 +75,17 @@ int main(int argc, char **argv)
     fflush(stdout);
     pthread_t threads[2];
     struct worker workers[2] = {
-        {mapping, pages, 0, 1, seconds, 0},
-        {mapping, pages, 16, 0, seconds, 0},
+        {mapping, pages, 0, 1, seconds, 0, 0, 0},
+        {mapping, pages, 16, 0, seconds, 0, 0, 0},
     };
     if (pthread_create(&threads[0], NULL, run, &workers[0]) || pthread_create(&threads[1], NULL, run, &workers[1])) return 1;
     pthread_join(threads[0], NULL); pthread_join(threads[1], NULL);
+    double elapsed = workers[0].elapsed > workers[1].elapsed ? workers[0].elapsed : workers[1].elapsed;
+    uint64_t accesses = workers[0].accesses + workers[1].accesses;
+    printf("{\"benchmark\":\"shared_heat_bench\",\"operation\":\"summary\","
+           "\"accesses\":%llu,\"elapsed_seconds\":%.9f,\"latency_ns\":%.6f,"
+           "\"bandwidth_mb_s\":%.6f}\n", (unsigned long long)accesses, elapsed,
+           elapsed * 1e9 * 2.0 / (double)accesses, (double)accesses * 8.0 / elapsed / 1e6);
     munmap((void *)mapping, pages * 4096);
     return workers[0].result == 0 || workers[1].result == 0;
 }

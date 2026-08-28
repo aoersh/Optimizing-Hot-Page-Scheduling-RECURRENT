@@ -38,6 +38,7 @@ python3 "$root/analysis/summarize_page_heat.py" "$heat" --threshold "${THRESHOLD
     --workset-pages "$pages" --output "$features"
 python3 "$root/analysis/select_heat_pages.py" "$heat" --min-delta "${MIN_DELTA:-2}" \
     --max-pages "${MAX_MIGRATIONS:-128}" --node0-output "$node0_pages" --node1-output "$node1_pages"
+sleep "$(awk -v ms="${MIGRATION_INTERVAL_MS:-0}" 'BEGIN {printf "%.3f", ms / 1000}')"
 set +e
 node0_result=$("$root/benchmarks/migrate_pid_pages" "$pid" 0 "$node0_pages")
 node0_status=$?
@@ -46,4 +47,14 @@ node1_status=$?
 set -e
 python3 -c 'import json,sys; json.dump({"pid":int(sys.argv[1]),"node0":json.loads(sys.argv[2]),"node1":json.loads(sys.argv[3]),"status":[int(sys.argv[4]),int(sys.argv[5])]},open(sys.argv[6],"w"),indent=2); print(open(sys.argv[6]).read())' "$pid" "$node0_result" "$node1_result" "$node0_status" "$node1_status" "$result"
 wait "$workload_pid" || true
+python3 - "$result" "$run_log" <<'PY'
+import json, sys
+result_path, log_path = sys.argv[1:]
+result = json.load(open(result_path))
+for line in open(log_path):
+    row = json.loads(line)
+    if row.get("operation") == "summary":
+        result.update({key: row[key] for key in ("latency_ns", "bandwidth_mb_s", "accesses", "elapsed_seconds")})
+json.dump(result, open(result_path, "w"), indent=2)
+PY
 printf 'data=%s\nheat=%s\nfeatures=%s\nmigration=%s\n' "$data" "$heat" "$features" "$result"
