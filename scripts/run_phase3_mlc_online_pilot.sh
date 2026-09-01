@@ -61,6 +61,7 @@ migration.update({"latency_ns": summary["lowest_load_latency_ns"],
                   "access_diff_threshold": int(threshold),
                   "configured_max_migrations": int(limit),
                   "migration_interval_ms": int(interval),
+                  "repeat": int(__import__('os').environ.get('REPEAT', '1')),
                   "perf_out_of_order_events": out_of_order})
 json.dump(migration, open(migration_path, "w"), indent=2)
 PY

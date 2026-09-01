@@ -4,12 +4,14 @@
   "workload": "shared_heat_bench",
   "sample_period": 1000,
   "min_delta_values": [1, 2],
-  "max_migrations_values": [64, 256, 512],
+  "max_migrations_values": [384, 512, 768],
   "migration_interval_ms_values": [0, 20],
   "objective": {
-    "primary": "latency_ns",
-    "latency_tolerance_ns": 1.0,
-    "tie_break": "max_bandwidth_mb_s"
+    "primary": "max_bandwidth_mb_s",
+    "max_latency_degradation_ns": 1.0,
+    "min_paired_repeats": 5,
+    "min_bandwidth_improvement_fraction": 0.8,
+    "fallback": "zero_migration"
   },
   "units": {"latency": "ns", "bandwidth": "MB/s", "migration_interval": "ms", "page": "4KiB"}
 }

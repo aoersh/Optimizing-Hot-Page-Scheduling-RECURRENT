@@ -24,6 +24,7 @@ for repeat in $(seq 1 "$repeats"); do
         MAX_MIGRATIONS="$limit" WORKLOAD="${WORKLOAD:-W21}" CXL_PERCENT="${CXL_PERCENT:-25}" \
             SAMPLE_SECONDS="${SAMPLE_SECONDS:-5}" MIN_DELTA="$threshold" \
             MIGRATION_INTERVAL_MS="$interval" RUN_POSITION="$((position + 1))" \
+            REPEAT="$repeat" \
             "$root/scripts/run_phase3_mlc_online_pilot.sh" "$run_dir" >"$run_dir.log"
         python3 - "$run_dir/migration.json" "$((position + 1))" <<'PY'
 import json, sys
