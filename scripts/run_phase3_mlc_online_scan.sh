@@ -6,14 +6,20 @@ output_dir=${1:-/tmp/hotpage-perf-check/phase3-mlc-online-scan}
 mkdir -p "$output_dir"
 # One control plus the threshold x migration-limit x interval factorial. A cyclic
 # rotation prevents any configuration from always occupying the same run slot.
-configs=("2:0:0")
-for threshold in ${THRESHOLDS:-1 2 4}; do
-    for limit in ${MIGRATION_LIMITS:-256 512}; do
-        for interval in ${MIGRATION_INTERVALS_MS:-0 20}; do
-            configs+=("$threshold:$limit:$interval")
+configs=("${CONTROL_THRESHOLD:-2}:0:0")
+if [[ -n "${SCAN_CONFIGS:-}" ]]; then
+    for config in $SCAN_CONFIGS; do
+        configs+=("$config")
+    done
+else
+    for threshold in ${THRESHOLDS:-1 2 4}; do
+        for limit in ${MIGRATION_LIMITS:-256 512}; do
+            for interval in ${MIGRATION_INTERVALS_MS:-0 20}; do
+                configs+=("$threshold:$limit:$interval")
+            done
         done
     done
-done
+fi
 repeats=${REPEATS:-4}
 for repeat in $(seq 1 "$repeats"); do
     offset=$(((repeat - 1) * 5 % ${#configs[@]}))
