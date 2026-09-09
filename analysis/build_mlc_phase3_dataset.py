@@ -21,8 +21,11 @@ def main() -> int:
     args = parser.parse_args()
     decision = json.loads(args.decision.read_text())
     winner = decision.get("winner")
-    if decision.get("decision") != "migrate" or not winner:
-        parser.error("decision does not contain a migration winner")
+    if decision.get("decision") == "fallback_zero_migration":
+        winner = {"access_diff_threshold": 2, "configured_max_migrations": 0,
+                  "migration_interval_ms": 0}
+    elif decision.get("decision") != "migrate" or not winner:
+        parser.error("decision does not contain a supported label")
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     stem = (f"t{winner['access_diff_threshold']}-m{winner['configured_max_migrations']}"
             f"-i{winner['migration_interval_ms']}-r*")
@@ -35,7 +38,10 @@ def main() -> int:
         features = json.loads(features_path.read_text())
         migration = json.loads(migration_path.read_text())
         repeat = int(migration["repeat"])
-        if migration["verified"] != winner["configured_max_migrations"]:
+        if (migration.get("verified") != winner["configured_max_migrations"] or
+                migration.get("migration_status") != 0 or
+                migration.get("migration_errors") != 0 or
+                migration.get("mlc_points") != 19):
             continue
         records.append({
             "run_id": run_dir.name,

@@ -20,7 +20,8 @@ class BuildMlcPhase3DatasetTest(unittest.TestCase):
                         "max_delta": 1, "high_delta_pages": 1, "imbalance_ratio": 1}
             (run / "features.json").write_text(json.dumps(features))
             migration = {"repeat": 1, "verified": 768, "latency_ns": 10,
-                         "bandwidth_mb_s": 100}
+                         "bandwidth_mb_s": 100, "migration_status": 0,
+                         "migration_errors": 0, "mlc_points": 19}
             (run / "migration.json").write_text(json.dumps(migration))
             decision = root / "winner.json"
             decision.write_text(json.dumps({
@@ -34,6 +35,33 @@ class BuildMlcPhase3DatasetTest(unittest.TestCase):
                 str(root), str(decision), "--output", str(output),
                 "--workload", "W21", "--ratio", "75:25", "--scenario", "s"], check=True)
             self.assertEqual(len(output.read_text().splitlines()), 1)
+
+    def test_builds_fallback_zero_migration_record(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run = root / "t2-m0-i0-r1"
+            run.mkdir()
+            features = {"total_pages": 1, "avg_n0": 1, "avg_n1": 0,
+                        "max_delta": 1, "high_delta_pages": 1,
+                        "imbalance_ratio": 1}
+            (run / "features.json").write_text(json.dumps(features))
+            migration = {"repeat": 1, "verified": 0, "latency_ns": 10,
+                         "bandwidth_mb_s": 100, "migration_status": 0,
+                         "migration_errors": 0, "mlc_points": 19}
+            (run / "migration.json").write_text(json.dumps(migration))
+            decision = root / "winner.json"
+            decision.write_text(json.dumps({
+                "decision": "fallback_zero_migration", "criteria": {},
+                "winner": None}))
+            output = root / "dataset.jsonl"
+            subprocess.run([
+                "python3", str(ROOT / "analysis/build_mlc_phase3_dataset.py"),
+                str(root), str(decision), "--output", str(output),
+                "--workload", "W23", "--ratio", "90:10", "--scenario", "s"],
+                check=True)
+            row = json.loads(output.read_text())
+            self.assertEqual(row["label"]["max_migrations"], 0)
+            self.assertEqual(row["label"]["migration_interval_ms"], 0)
 
 
 if __name__ == "__main__":
