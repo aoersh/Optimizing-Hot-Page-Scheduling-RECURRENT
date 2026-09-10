@@ -17,11 +17,23 @@ features="$output_dir/features.json"
 pages="$output_dir/candidates.pages"
 migration="$output_dir/migration.json"
 curve="$output_dir/mlc-curve.jsonl"
+mlc_thread_range=${MLC_THREAD_RANGE:-1-15}
+cpu_bind=${CPU_BIND:-0-15}
+cpu_node=${CPU_NODE:-0}
+dram_node=${DRAM_NODE:-0}
+cxl_node=${CXL_NODE:-2}
+hot_access_node=${HOT_ACCESS_NODE:-0}
+if [[ "$hot_access_node" != 0 && "$hot_access_node" != 1 ]]; then
+    printf 'HOT_ACCESS_NODE must be 0 or 1\n' >&2
+    exit 2
+fi
 
-printf '1-15 %s seq %s dram 0 dram 2 %s\n' \
-    "$workload" "${BUFFER_KIB:-65536}" "$cxl_percent" >"$config"
+printf '%s %s seq %s dram %s dram %s %s\n' \
+    "$mlc_thread_range" "$workload" "${BUFFER_KIB:-65536}" \
+    "$dram_node" "$cxl_node" "$cxl_percent" >"$config"
 make -C "$root/benchmarks" migrate_pid_pages >/dev/null
-numactl --physcpubind=0-15 "$mlc" --loaded_latency -e -r -c0 -j0 \
+numactl --physcpubind="$cpu_bind" "$mlc" --loaded_latency -e -r \
+    -c"$cpu_node" -j"$cpu_node" \
     -o"$config" -t"${MLC_TIME:-1}" >"$raw" 2>&1 &
 pid=$!
 trap 'kill "$pid" 2>/dev/null || true' EXIT
@@ -34,18 +46,23 @@ python3 "$root/analysis/parse_perf_mem.py" "$data" --pid "$pid" --jsonl "$heat" 
 workset_pages=$((15 * 2 * ${BUFFER_KIB:-65536} / 4))
 python3 "$root/analysis/summarize_page_heat.py" "$heat" --threshold "${MIN_DELTA:-2}" \
     --workset-pages "$workset_pages" --output "$features"
+node0_pages="$output_dir/node0.pages"
+node1_pages="$output_dir/node1.pages"
 python3 "$root/analysis/select_heat_pages.py" "$heat" --min-delta "${MIN_DELTA:-2}" \
-    --max-pages "${CANDIDATE_POOL:-4096}" --node0-output "$pages" \
-    --node1-output "$output_dir/unused-node1.pages"
+    --max-pages "${CANDIDATE_POOL:-4096}" --node0-output "$node0_pages" \
+    --node1-output "$node1_pages"
+cp "$output_dir/node${hot_access_node}.pages" "$pages"
 sleep "$(awk -v ms="${MIGRATION_INTERVAL_MS:-0}" 'BEGIN {printf "%.3f", ms / 1000}')"
 set +e
-"$root/benchmarks/migrate_pid_pages" "$pid" 0 "$pages" 2 "${MAX_MIGRATIONS:-64}" >"$migration"
+"$root/benchmarks/migrate_pid_pages" "$pid" "$dram_node" "$pages" "$cxl_node" \
+    "${MAX_MIGRATIONS:-64}" >"$migration"
 migration_status=$?
 set -e
 wait "$pid"
 trap - EXIT
 python3 "$root/analysis/parse_mlc_loaded_latency.py" "$raw" --output "$curve" \
-    --workload "$workload" --ratio "$ratio" --scenario socket0-online --repeat 1 >"$output_dir/mlc-summary.json"
+    --workload "$workload" --ratio "$ratio" \
+    --scenario "socket${cpu_node}-online" --repeat 1 >"$output_dir/mlc-summary.json"
 python3 - "$migration" "$output_dir/mlc-summary.json" "$migration_status" \
     "$perf_log" "${MIN_DELTA:-2}" "${MAX_MIGRATIONS:-64}" \
     "${MIGRATION_INTERVAL_MS:-0}" <<'PY'
